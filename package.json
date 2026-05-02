@@ -1,6 +1,8 @@
 {
   "name": "obs-mobile-studio",
   "version": "1.0.0",
+  "description": "OBS Studio WebApp for Mobile",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
