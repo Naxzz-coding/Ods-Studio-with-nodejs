@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>OBS Mobile Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            touch-action: pan-x pan-y;
+        }
+
+        /* Mobile Layout */
+        .mobile-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #ff4444;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Preview Canvas */
+        .preview-container {
+            background: #000;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+            background: #1a1a1a;
+        }
+
+        #previewCanvas {
+            width: 100%;
+            max-height: 40vh;
+            background: #000;
+            object-fit: contain;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            background: #1e1e1e;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid #333;
+            border-bottom: 1px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .nav-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #aaa;
+            padding: 10px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-btn.active {
+            color: #00ff88;
+        }
+
+        .nav-btn span:first-child {
+            font-size: 22px;
+        }
+
+        /* Content Panels */
+        .panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* Sources Grid */
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .source-card {
+            background: #2d2d2d;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .source-card.active {
+            background: #0066cc;
+            border: 2px solid #00ff88;
+        }
+
+        .source-card .icon {
+            font-size: 28px;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .source-card .name {
+            font-size: 11px;
+            word-break: break-word;
+        }
+
+        .source-visibility {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* Scenes List */
+        .scenes-list {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 0;
+            margin-bottom: 16px;
+        }
+
+        .scene-chip {
+            background: #2d2d2d;
+            padding: 8px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .scene-chip.active {
+            background: #0066cc;
+        }
+
+        /* Property Editor */
+        .property-group {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .property-row {
+            margin-bottom: 12px;
+        }
+
+        .property-row label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .property-row input, 
+        .property-row select,
+        .property-row textarea {
+            width: 100%;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .property-row textarea {
+            min-height: 80px;
+        }
+
+        .property-row input[type="color"] {
+            height: 44px;
+        }
+
+        .property-row input[type="range"] {
+            padding: 0;
+        }
+
+        /* Buttons */
+        .btn {
+            background: #3d3d3d;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0066cc, #0052a3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #218838);
+        }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            background: #00ff88;
+            color: #1a1a1a;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #2d2d2d;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            padding: 10px 20px;
+            border-radius: 25px;
+            z-index: 2000;
+            animation: fadeInUp 0.3s ease;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Transform controls */
+        .transform-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎬 OBS Mobile Studio</h1>
+            <div id="liveBadge" class="live-indicator" style="display: none;">
+                <span>🔴</span> LIVE
+            </div>
+        </div>
+
+        <!-- Preview Canvas -->
+        <div class="preview-container">
+            <canvas id="previewCanvas" width="854" height="480"></canvas>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <button class="nav-btn active" data-panel="sources">
+                <span>📁</span>
+                <span>Sources</span>
+            </button>
+            <button class="nav-btn" data-panel="scenes">
+                <span>🎬</span>
+                <span>Scenes</span>
+            </button>
+            <button class="nav-btn" data-panel="edit">
+                <span>✏️</span>
+                <span>Edit</span>
+            </button>
+            <button class="nav-btn" data-panel="stream">
+                <span>📡</span>
+                <span>Stream</span>
+            </button>
+        </div>
+
+        <!-- Sources Panel -->
+        <div id="sourcesPanel" class="panel active">
+            <div class="sources-grid" id="sourcesGrid"></div>
+            <button class="btn btn-primary" onclick="showAddSourceModal()">➕ Add Source</button>
+        </div>
+
+        <!-- Scenes Panel -->
+        <div id="scenesPanel" class="panel">
+            <div class="scenes-list" id="scenesList"></div>
+            <button class="btn btn-primary" onclick="showAddSceneModal()">➕ New Scene</button>
+        </div>
+
+        <!-- Edit Panel -->
+        <div id="editPanel" class="panel">
+            <div id="propertyEditor">
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    👆 Tap on a source to edit
+                </div>
+            </div>
+        </div>
+
+        <!-- Stream Panel -->
+        <div id="streamPanel" class="panel">
+            <div class="property-group">
+                <div class="property-row">
+                    <label>RTMP Server URL</label>
+                    <input type="text" id="rtmpUrl" value="rtmp://ssh101.bozztv.com/live">
+                </div>
+                <div class="property-row">
+                    <label>Stream Key (optional)</label>
+                    <input type="text" id="streamKey" placeholder="Leave empty if not needed">
+                </div>
+                <div class="property-row">
+                    <label>Video Bitrate</label>
+                    <select id="bitrate">
+                        <option value="1000">1000 Kbps (480p)</option>
+                        <option value="1500" selected>1500 Kbps (720p)</option>
+                        <option value="2500">2500 Kbps (1080p)</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" id="startStreamBtn" onclick="startStream()">🔴 Start Live Stream</button>
+                <button class="btn btn-danger" id="stopStreamBtn" onclick="stopStream()" style="display: none;">⏹️ Stop Stream</button>
+            </div>
+        </div>
+
+        <!-- FAB -->
+        <button class="fab" onclick="captureScreenshot()">📸</button>
+    </div>
+
+    <!-- Add Source Modal -->
+    <div id="addSourceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">➕ Add Source</div>
+            <div class="property-row">
+                <label>Source Type</label>
+                <select id="sourceType" onchange="toggleSourceType()">
+                    <option value="text">📝 Text</option>
+                    <option value="video">🎥 Video (MP4)</option>
+                    <option value="image">🖼️ Image</option>
+                </select>
+            </div>
+            <div id="fileInputDiv" style="display: none;">
+                <div class="property-row">
+                    <label>Upload File</label>
+                    <input type="file" id="sourceFile" accept="video/mp4,image/*">
+                </div>
+            </div>
+            <div id="textInputDiv">
+                <div class="property-row">
+                    <label>Text Content</label>
+                    <textarea id="sourceText" rows="3" placeholder="Enter your text..."></textarea>
+                </div>
+                <div class="property-row">
+                    <label>Font Size</label>
+                    <input type="number" id="fontSize" value="28">
+                </div>
+                <div class="property-row">
+                    <label>Font Color</label>
+                    <input type="color" id="fontColor" value="#ffffff">
+                </div>
+            </div>
+            <div class="property-row">
+                <label>Source Name</label>
+                <input type="text" id="sourceName" placeholder="Source name">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="addSource()">Add</button>
+                <button class="btn" onclick="closeModal('addSourceModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Scene Modal -->
+    <div id="addSceneModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🎬 New Scene</div>
+            <div class="property-row">
+                <label>Scene Name</label>
+                <input type="text" id="sceneName" placeholder="Scene name">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="addScene()">Create</button>
+                <button class="btn" onclick="closeModal('addSceneModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // OBS Mobile Studio - Full Features
+        let project = {
+            scenes: [],
+            currentSceneId: null,
+            settings: {}
+        };
+        
+        let selectedSourceId = null;
+        let isStreaming = false;
+        let ws = null;
+        let canvas = document.getElementById('previewCanvas');
+        let ctx = canvas.getContext('2d');
+        let animationId = null;
+        
+        // Initialize
+        async function init() {
+            await loadProject();
+            setupWebSocket();
+            setupCanvasEvents();
+            startRenderLoop();
+            updateUI();
+        }
+        
+        // Load project from server
+        async function loadProject() {
+            try {
+                const response = await fetch('/api/project');
+                project = await response.json();
+                if (!project.scenes || project.scenes.length === 0) {
+                    createDefaultProject();
+                }
+            } catch (error) {
+                console.error('Error loading project:', error);
+                createDefaultProject();
+            }
+        }
+        
+        function createDefaultProject() {
+            project = {
+                scenes: [{
+                    id: Date.now(),
+                    name: 'Scene 1',
+                    sources: [{
+                        id: Date.now() + 1,
+                        name: 'Welcome',
+                        type: 'text',
+                        x: 50,
+                        y: 200,
+                        width: 300,
+                        height: 100,
+                        opacity: 100,
+                        visible: true,
+                        data: {
+                            text: '🎬 OBS Mobile Studio\nTap to edit!',
+                            fontSize: 24,
+                            fontColor: '#00ff88',
+                            textAlign: 'center'
+                        }
+                    }]
+                }],
+                currentSceneId: Date.now(),
+                settings: {}
+            };
+            project.currentSceneId = project.scenes[0].id;
+        }
+        
+        // WebSocket connection
+        function setupWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'init') {
+                    project = data.project;
+                    updateUI();
+                } else if (data.type === 'projectUpdated') {
+                    project = data.project;
+                    updateUI();
+                    showToast('Project updated');
+                }
+            };
+        }
+        
+        // Render all sources
+        function renderPreview() {
+            if (!ctx) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Background
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            
+            // Get current scene
+            const currentScene = project.scenes.find(s => s.id === project.currentSceneId);
+            if (!currentScene) return;
+            
+            // Render sources
+            for (const source of currentScene.sources) {
+                if (!source.visible) continue;
+                
+                ctx.save();
+                ctx.globalAlpha = source.opacity / 100;
+                
+                if (source.type === 'text') {
+                    ctx.fillStyle = source.data.fontColor || '#ffffff';
+                    ctx.font = `${source.data.fontSize || 24}px Arial, -apple-system`;
+                    ctx.textAlign = source.data.textAlign || 'left';
+                    ctx.textBaseline = 'top';
+                    
+                    const lines = (source.data.text || '').split('\n');
+                    let yOffset = source.y;
+                    lines.forEach(line => {
+                        ctx.fillText(line, source.x, yOffset);
+                        yOffset += (source.data.fontSize || 24) + 5;
+                    });
+                } else if (source.type === 'video' && source.element && source.element.readyState >= 2) {
+                    try {
+                        ctx.drawImage(source.element, source.x, source.y, source.width, source.height);
+                    } catch(e) {}
+                } else if (source.type === 'image' && source.element && source.element.complete) {
+                    ctx.drawImage(source.element, source.x, source.y, source.width, source.height);
+                }
+                
+                // Selection border
+                if (selectedSourceId === source.id) {
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([8, 8]);
+                    ctx.strokeRect(source.x - 2, source.y - 2, source.width + 4, source.height + 4);
+                    ctx.setLineDash([]);
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        // Animation loop
+        function startRenderLoop() {
+            function animate() {
+                renderPreview();
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+        
+        // Touch events for drag
+        function setupCanvasEvents() {
+            let dragSourceId = null;
+            let dragOffsetX = 0, dragOffsetY = 0;
+            
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const touch = e.touches[0];
+                const mouseX = (touch.clientX - rect.left) * scaleX;
+                const mouseY = (touch.clientY - rect.top) * scaleY;
+                
+                const currentScene = project.scenes.find(s => s.id === project.currentSceneId);
+                if (!currentScene) return;
+                
+                for (let i = currentScene.sources.length - 1; i >= 0; i--) {
+                    const source = currentScene.sources[i];
+                    if (!source.visible) continue;
+                    
+                    if (mouseX >= source.x && mouseX <= source.x + source.width &&
+                        mouseY >= source.y && mouseY <= source.y + source.height) {
+                        dragSourceId = source.id;
+                        dragOffsetX = mouseX - source.x;
+                        dragOffsetY = mouseY - source.y;
+                        selectSource(source.id);
+                        break;
+                    }
+                }
+            });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                if (dragSourceId) {
+                    e.preventDefault();
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    const touch = e.touches[0];
+                    const mouseX = (touch.clientX - rect.left) * scaleX;
+                    const mouseY = (touch.clientY - rect.top) * scaleY;
+                    
+                    const currentScene = project.scenes.find(s => s.id === project.currentSceneId);
+                    const source = currentScene?.sources.find(s => s.id === dragSourceId);
+                    if (source) {
+                        source.x = mouseX - dragOffsetX;
+                        source.y = mouseY - dragOffsetY;
+                        updateSourceProperty(source.id, { x: source.x, y: source.y });
+                        updateTransformInputs();
+                    }
+                }
+            });
+            
+            canvas.addEventListener('touchend', () => {
+                dragSourceId = null;
+            });
+        }
+        
+        // Update UI components
+        function updateUI() {
+            updateSourcesGrid();
+            updateScenesList();
+            updateTransformInputs();
+        }
+        
+        function updateSourcesGrid() {
+            const grid = document.getElementById('sourcesGrid');
+            const currentScene = project.scenes.find(s => s.id === project.currentSceneId);
+            
+            if (!currentScene || currentScene.sources.length === 0) {
+                grid.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">No sources yet<br>Tap + to add</div>';
+                return;
+            }
+            
+            grid.innerHTML = '';
+            for (const source of currentScene.sources) {
+                const div = document.createElement('div');
+                div.className = `source-card ${selectedSourceId === source.id ? 'active' : ''}`;
+                div.onclick = () => selectSource(source.id);
+                div.innerHTML = `
+                    <span class="icon">${getSourceIcon(source.type)}</span>
+                    <span class="name">${source.name}</span>
+                    <div class="source-visibility" onclick="event.stopPropagation(); toggleVisibility(${source.id})">
+                        ${source.visible ? '👁️' : '👁️‍🗨️'}
+                    </div>
+                `;
+                grid.appendChild(div);
+            }
+        }
+        
+        function updateScenesList() {
+            const container = document.getElementById('scenesList');
+            container.innerHTML = '';
+            
+            for (const scene of project.scenes) {
+                const chip = document.createElement('div');
+                chip.className = `scene-chip ${project.currentSceneId === scene.id ? 'active' : ''}`;
+                chip.onclick = () => switchScene(scene.id);
+                chip.innerHTML = `🎬 ${scene.name}`;
+                container.appendChild(chip);
+            }
+        }
+        
+        function updateTransformInputs() {
+            const source = getSelectedSource();
+            if (source) {
+                document.getElementById('posX').value = source.x;
+                document.getElementById('posY').value = source.y;
+                document.getElementById('sourceWidth').value = source.width;
+                document.getElementById('sourceHeight').value = source.height;
+                document.getElementById('sourceOpacity').value = source.opacity;
+            }
+        }
+        
+        function updateTransformInputs() {
+            const source = getSelectedSource();
+            if (source) {
+                // Update property editor
+                showPropertyEditor(source);
+            }
+        }
+        
+        function showPropertyEditor(source) {
+            const editor = document.getElementById('propertyEditor');
+            
+            if (source.type === 'text') {
+                editor.innerHTML = `
+                    <div class="property-group">
+                        <h4>📝 Text Properties</h4>
+                        <div class="property-row">
+                            <label>Text Content</label>
+                            <textarea id="editText" onchange="updateTextProperty()">${escapeHtml(source.data.text || '')}</textarea>
+                        </div>
+                        <div class="property-row">
+                            <label>Font Size: ${source.data.fontSize || 24}px</label>
+                            <input type="range" id="editFontSize" min="10" max="72" value="${source.data.fontSize || 24}" onchange="updateTextProperty()">
+                        </div>
+                        <div class="property-row">
+                            <label>Font Color</label>
+                            <input type="color" id="editFontColor" value="${source.data.fontColor || '#ffffff'}" onchange="updateTextProperty()">
+                        </div>
+                        <div class="property-row">
+                            <label>Text Align</label>
+                            <select id="editTextAlign" onchange="updateTextProperty()">
+                                <option value="left" ${source.data.textAlign === 'left' ? 'selected' : ''}>Left</option>
+                                <option value="center" ${source.data.textAlign === 'center' ? 'selected' : ''}>Center</option>
+                                <option value="right" ${source.data.textAlign === 'right' ? 'selected' : ''}>Right</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="property-group">
+                        <h4>📐 Transform</h4>
+                        <div class="transform-controls">
+                            <div class="property-row">
+                                <label>X</label>
+                                <input type="number" id="posX" value="${source.x}" onchange="updateTransform('x', this.value)">
+                            </div>
+                            <div class="property-row">
+                                <label>Y</label>
+                                <input type="number" id="posY" value="${source.y}" onchange="updateTransform('y', this.value)">
+                            </div>
+                            <div class="property-row">
+                                <label>Width</label>
+                                <input type="number" id="sourceWidth" value="${source.width}" onchange="updateTransform('width', this.value)">
+                            </div>
+                            <div class="property-row">
+                                <label>Height</label>
+                                <input type="number" id="sourceHeight" value="${source.height}" onchange="updateTransform('height', this.value)">
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <label>Opacity: ${source.opacity}%</label>
+                            <input type="range" id="sourceOpacity" min="0" max="100" value="${source.opacity}" onchange="updateTransform('opacity', this.value)">
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteSelectedSource()">🗑️ Delete Source</button>
+                `;
+            } else {
+                editor.innerHTML = `
+                    <div class="property-group">
+                        <h4>📐 Transform</h4>
+                        <div class="transform-controls">
+                            <div class="property-row">
+                                <label>X</label>
+                                <input type="number" id="posX" value="${source.x}" onchange="updateTransform('x', this.value)">
+                            </div>
+                            <div class="property-row">
+                                <label>Y</label>
+                                <input type="number" id="posY" value="${source.y}" onchange="updateTransform('y', this.value)">
+                            </div>
+                            <div class="property-row">
+                                <label>Width</label>
+                                <input type="number" id="sourceWidth" value="${source.width}" onchange="updateTransform('width', this.value)">
+                            </div>
+                            <div class="property-row">
+                                <label>Height</label>
+                                <input type="number" id="sourceHeight" value="${source.height}" onchange="updateTransform('height', this.value)">
+                            </div>
+                        </div>
+                        <div class="property-row">
+                            <label>Opacity: ${source.opacity}%</label>
+                            <input type="range" id="sourceOpacity" min="0" max="100" value="${source.opacity}" onchange="updateTransform('opacity', this.value)">
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteSelectedSource()">🗑️ Delete Source</button>
+                `;
+            }
+        }
+        
+        // CRUD Operations
+        function selectSource(id) {
+            selectedSourceId = id;
+            updateSourcesGrid();
+            const source = getSelectedSource();
+            if (source) {
+                showPropertyEditor(source);
+                // Switch to edit panel
+                switchPanel('edit');
+            }
+        }
+        
+        function getSelectedSource() {
+            const currentScene = project.scenes.find(s => s.id === project.currentSceneId);
+            return currentScene?.sources.find(s => s.id === selectedSourceId);
+        }
+        
+        function updateTransform(prop, value) {
+            const source = getSelectedSource();
+            if (source) {
+                source[prop] = parseInt(value);
+                updateSourceProperty(source.id, { [prop]: parseInt(value) });
+            }
+        }
+        
+        function updateTextProperty() {
+            const source = getSelectedSource();
+            if (source && source.type === 'text') {
+                source.data.text = document.getElementById('editText')?.value || source.data.text;
+                source.data.fontSize = parseInt(document.getElementById('editFontSize')?.value) || 24;
+                source.data.fontColor = document.getElementById('editFontColor')?.value || '#ffffff';
+                source.data.textAlign = document.getElementById('editTextAlign')?.value || 'left';
+                updateSourceProperty(source.id, { data: source.data });
+                showToast('Text updated');
+            }
+        }
+        
+        async function updateSourceProperty(id, updates) {
+            try {
+                await fetch(`/api/source/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                await loadProject();
+                updateUI();
+            } catch (error) {
+                console.error('Update error:', error);
+            }
+        }
+        
+        function toggleVisibility(id) {
+            const source = getSelectedSource();
+            if (source && source.id === id) {
+                updateSourceProperty(id, { visible: !source.visible });
+            }
+        }
+        
+        async function deleteSelectedSource() {
+            if (selectedSourceId && confirm('Delete this source?')) {
+                await fetch(`/api/source/${selectedSourceId}`, { method: 'DELETE' });
+                selectedSourceId = null;
+                await loadProject();
+                updateUI();
+                document.getElementById('propertyEditor').innerHTML = '<div style="text-align:center;padding:40px;color:#666;">👆 Tap on a source to edit</div>';
+                showToast('Source deleted');
+            }
+        }
+        
+        function switchScene(sceneId) {
+            project.currentSceneId = sceneId;
+            selectedSourceId = null;
+            saveProject();
+            updateUI();
+            showToast(`Switched to scene`);
+        }
+        
+        async function addScene() {
+            const name = document.getElementById('sceneName').value;
+            if (name) {
+                await fetch('/api/scene', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                await loadProject();
+                updateUI();
+                closeModal('addSceneModal');
+                document.getElementById('sceneName').value = '';
+                showToast(`Scene "${name}" created`);
+            }
+        }
+        
+        async function addSource() {
+            const type = document.getElementById('sourceType').value;
+            const name = document.getElementById('sourceName').value || `${type}_${Date.now()}`;
+            const file = document.getElementById('sourceFile')?.files[0];
+            
+            let source = {
+                name: name,
+                type: type,
+                x: 100,
+                y: 100,
+                width: type === 'text' ? 250 : 300,
+                height: type === 'text' ? 80 : 200,
+                opacity: 100,
+                visible: true,
+                data: {}
+            };
+            
+            if (type === 'text') {
+                source.data = {
+                    text: document.getElementById('sourceText').value || 'New Text',
+                    fontSize: parseInt(document.getElementById('fontSize').value) || 24,
+                    fontColor: document.getElementById('fontColor').value || '#ffffff',
+                    textAlign: 'left'
+                };
+            } else if (file) {
+                // Upload file first
+                const formData = new FormData();
+                formData.append('file', file);
+                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
+                if (uploadData.success) {
+                    source.data = { path: uploadData.file.path };
+                }
+            }
+            
+            await fetch('/api/source', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sceneId: project.currentSceneId, source })
+            });
+            
+            await loadProject();
+            updateUI();
+            closeModal('addSourceModal');
+            clearSourceForm();
+            showToast(`Added: ${name}`);
+        }
+        
+        async function saveProject() {
+            await fetch('/api/project', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(project)
+            });
+        }
+        
+        // Streaming functions
+        async function startStream() {
+            const rtmpUrl = document.getElementById('rtmpUrl').value;
+            const streamKey = document.getElementById('streamKey').value;
+            
+            if (!rtmpUrl) {
+                showToast('Please enter RTMP URL');
+                return;
+            }
+            
+            const response = await fetch('/api/stream/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rtmpUrl, streamKey, sceneId: project.currentSceneId })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                isStreaming = true;
+                document.getElementById('startStreamBtn').style.display = 'none';
+                document.getElementById('stopStreamBtn').style.display = 'block';
+                document.getElementById('liveBadge').style.display = 'flex';
+                showToast('🔴 LIVE Streaming Started!');
+            }
+        }
+        
+        async function stopStream() {
+            await fetch('/api/stream/stop', { method: 'POST', body: JSON.stringify({}) });
+            isStreaming = false;
+            document.getElementById('startStreamBtn').style.display = 'block';
+            document.getElementById('stopStreamBtn').style.display = 'none';
+            document.getElementById('liveBadge').style.display = 'none';
+            showToast('Stream stopped');
+        }
+        
+        function captureScreenshot() {
+            const link = document.createElement('a');
+            link.download = `screenshot_${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            showToast('Screenshot saved!');
+        }
+        
+        // UI Helpers
+        function getSourceIcon(type) {
+            const icons = { text: '📝', video: '🎥', image: '🖼️' };
+            return icons[type] || '📁';
+        }
+        
+        function toggleSourceType() {
+            const type = document.getElementById('sourceType').value;
+            document.getElementById('fileInputDiv').style.display = (type === 'video' || type === 'image') ? 'block' : 'none';
+            document.getElementById('textInputDiv').style.display = type === 'text' ? 'block' : 'none';
+        }
+        
+        function clearSourceForm() {
+            document.getElementById('sourceName').value = '';
+            document.getElementById('sourceText').value = '';
+            document.getElementById('sourceFile').value = '';
+            document.getElementById('fontSize').value = '28';
+            document.getElementById('fontColor').value = '#ffffff';
+        }
+        
+        function switchPanel(panelId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`${panelId}Panel`).classList.add('active');
+            event.target.closest('.nav-btn').classList.add('active');
+        }
+        
+        function showAddSourceModal() { showModal('addSourceModal'); }
+        function showAddSceneModal() { showModal('addSceneModal'); }
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+        
+        // Panel navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const panel = btn.dataset.panel;
+                switchPanel(panel);
+            });
+        });
+        
+        // Start app
+        init();
+    </script>
+</body>
+</html>
