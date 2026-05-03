@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>OBS Mobile Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            touch-action: pan-x pan-y;
+        }
+        .mobile-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .header h1 { font-size: 18px; }
+        .live-indicator {
+            background: #ff4444;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .preview-container {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+            background: #1a1a1a;
+        }
+        #previewCanvas {
+            width: 100%;
+            max-height: 40vh;
+            background: #000;
+            object-fit: contain;
+        }
+        .bottom-nav {
+            background: #1e1e1e;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid #333;
+            border-bottom: 1px solid #333;
+        }
+        .nav-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #aaa;
+            padding: 10px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        .nav-btn.active { color: #00ff88; }
+        .nav-btn span:first-child { font-size: 22px; }
+        .panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: none;
+        }
+        .panel.active { display: block; }
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .source-card {
+            background: #2d2d2d;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .source-card.active { background: #0066cc; border: 2px solid #00ff88; }
+        .source-card .icon { font-size: 28px; display: block; margin-bottom: 6px; }
+        .source-card .name { font-size: 11px; word-break: break-word; }
+        .source-visibility {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .scenes-list {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 0;
+            margin-bottom: 16px;
+        }
+        .scene-chip {
+            background: #2d2d2d;
+            padding: 8px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .scene-chip.active { background: #0066cc; }
+        .property-group {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .property-row {
+            margin-bottom: 12px;
+        }
+        .property-row label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .property-row input, .property-row select, .property-row textarea {
+            width: 100%;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .property-row textarea { min-height: 80px; }
+        .property-row input[type="color"] { height: 44px; }
+        .btn {
+            background: #3d3d3d;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #0066cc, #0052a3); }
+        .btn-danger { background: linear-gradient(135deg, #dc3545, #c82333); }
+        .btn-success { background: linear-gradient(135deg, #28a745, #218838); }
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            background: #00ff88;
+            color: #1a1a1a;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 20;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #2d2d2d;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 16px; }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            padding: 10px 20px;
+            border-radius: 25px;
+            z-index: 2000;
+            animation: fadeInUp 0.3s ease;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .transform-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="mobile-container">
+    <div class="header">
+        <h1>🎬 OBS Mobile Studio</h1>
+        <div id="liveBadge" class="live-indicator" style="display: none;">🔴 LIVE</div>
+    </div>
+    <div class="preview-container">
+        <canvas id="previewCanvas" width="854" height="480"></canvas>
+    </div>
+    <div class="bottom-nav">
+        <button class="nav-btn active" data-panel="sources"><span>📁</span><span>Sources</span></button>
+        <button class="nav-btn" data-panel="scenes"><span>🎬</span><span>Scenes</span></button>
+        <button class="nav-btn" data-panel="edit"><span>✏️</span><span>Edit</span></button>
+        <button class="nav-btn" data-panel="stream"><span>📡</span><span>Stream</span></button>
+    </div>
+
+    <div id="sourcesPanel" class="panel active">
+        <div class="sources-grid" id="sourcesGrid"></div>
+        <button class="btn btn-primary" onclick="showAddSourceModal()">➕ Add Source</button>
+    </div>
+    <div id="scenesPanel" class="panel">
+        <div class="scenes-list" id="scenesList"></div>
+        <button class="btn btn-primary" onclick="showAddSceneModal()">➕ New Scene</button>
+    </div>
+    <div id="editPanel" class="panel">
+        <div id="propertyEditor"><div style="text-align:center;padding:40px;color:#666;">👆 Tap on a source to edit</div></div>
+    </div>
+    <div id="streamPanel" class="panel">
+        <div class="property-group">
+            <div class="property-row"><label>RTMP Server URL</label><input type="text" id="rtmpUrl" value="rtmp://ssh101.bozztv.com/live"></div>
+            <div class="property-row"><label>Stream Key (optional)</label><input type="text" id="streamKey" placeholder="Leave empty"></div>
+            <div class="property-row"><label>Bitrate</label><select id="bitrate"><option value="1000">1000 Kbps</option><option value="1500" selected>1500 Kbps</option><option value="2500">2500 Kbps</option></select></div>
+            <button class="btn btn-success" id="startStreamBtn" onclick="startStream()">🔴 Start Live Stream</button>
+            <button class="btn btn-danger" id="stopStreamBtn" onclick="stopStream()" style="display: none;">⏹️ Stop Stream</button>
+        </div>
+    </div>
+    <button class="fab" onclick="captureScreenshot()">📸</button>
+</div>
+
+<!-- Add Source Modal -->
+<div id="addSourceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">➕ Add Source</div>
+        <div class="property-row"><label>Source Type</label><select id="sourceType" onchange="toggleSourceType()"><option value="text">📝 Text</option><option value="video">🎥 Video (MP4)</option><option value="image">🖼️ Image</option></select></div>
+        <div id="fileInputDiv" style="display:none;"><div class="property-row"><label>Upload File</label><input type="file" id="sourceFile" accept="video/mp4,image/*"></div></div>
+        <div id="textInputDiv"><div class="property-row"><label>Text Content</label><textarea id="sourceText" rows="3" placeholder="Enter text..."></textarea></div>
+        <div class="property-row"><label>Font Size</label><input type="number" id="fontSize" value="28"></div>
+        <div class="property-row"><label>Font Color</label><input type="color" id="fontColor" value="#ffffff"></div></div>
+        <div class="property-row"><label>Source Name</label><input type="text" id="sourceName" placeholder="Source name"></div>
+        <div class="modal-buttons"><button class="btn" onclick="addSource()">Add</button><button class="btn" onclick="closeModal('addSourceModal')">Cancel</button></div>
+    </div>
+</div>
+<!-- Add Scene Modal -->
+<div id="addSceneModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">🎬 New Scene</div>
+        <div class="property-row"><label>Scene Name</label><input type="text" id="sceneName" placeholder="Scene name"></div>
+        <div class="modal-buttons"><button class="btn" onclick="addScene()">Create</button><button class="btn" onclick="closeModal('addSceneModal')">Cancel</button></div>
+    </div>
+</div>
+
+<script>
+    // ============ GLOBAL STATE ============
+    let project = { scenes: [], currentSceneId: null, settings: {} };
+    let selectedSourceId = null;
+    let isStreaming = false;
+    let ws = null;
+    let canvas = document.getElementById('previewCanvas');
+    let ctx = canvas.getContext('2d');
+    let animationId = null;
+    let activeMediaElements = new Map(); // store video/image elements per source id
+
+    // ============ INIT ============
+    async function init() {
+        await loadProject();
+        setupWebSocket();
+        setupCanvasEvents();
+        startRenderLoop();
+        updateUI();
+    }
+
+    async function loadProject() {
+        try {
+            const res = await fetch('/api/project');
+            project = await res.json();
+            if (!project.scenes || project.scenes.length === 0) createDefaultProject();
+        } catch(e) { createDefaultProject(); }
+    }
+
+    function createDefaultProject() {
+        const sceneId = Date.now();
+        project = {
+            scenes: [{ id: sceneId, name: 'Scene 1', sources: [] }],
+            currentSceneId: sceneId,
+            settings: { rtmpUrl: 'rtmp://ssh101.bozztv.com/live', streamKey: '', bitrate: 1500 }
+        };
+        // demo text
+        project.scenes[0].sources.push({
+            id: Date.now()+1, name: 'Welcome Text', type: 'text',
+            x: 50, y: 200, width: 300, height: 100, opacity: 100, visible: true,
+            data: { text: '🎬 OBS Mobile Studio\nTap to edit!', fontSize: 24, fontColor: '#00ff88', textAlign: 'center' }
+        });
+        saveProject();
+    }
+
+    function setupWebSocket() {
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${location.host}`);
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'init' || data.type === 'projectUpdated') {
+                project = data.project;
+                updateUI();
+            }
+        };
+    }
+
+    async function saveProject() {
+        await fetch('/api/project', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(project) });
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'updateProject', project }));
+    }
+
+    // ============ UI RENDERING ============
+    function updateUI() {
+        updateSourcesGrid();
+        updateScenesList();
+    }
+
+    function getCurrentScene() {
+        return project.scenes.find(s => s.id === project.currentSceneId) || project.scenes[0];
+    }
+
+    function updateSourcesGrid() {
+        const grid = document.getElementById('sourcesGrid');
+        const scene = getCurrentScene();
+        if (!scene || scene.sources.length === 0) {
+            grid.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">No sources<br>Tap + to add</div>';
+            return;
+        }
+        grid.innerHTML = '';
+        for (const src of scene.sources) {
+            const card = document.createElement('div');
+            card.className = `source-card ${selectedSourceId === src.id ? 'active' : ''}`;
+            card.onclick = () => selectSource(src.id);
+            card.innerHTML = `
+                <span class="icon">${getSourceIcon(src.type)}</span>
+                <span class="name">${escapeHtml(src.name)}</span>
+                <div class="source-visibility" onclick="event.stopPropagation(); toggleVisibility(${src.id})">${src.visible ? '👁️' : '👁️‍🗨️'}</div>
+            `;
+            grid.appendChild(card);
+        }
+    }
+
+    function updateScenesList() {
+        const container = document.getElementById('scenesList');
+        container.innerHTML = '';
+        for (const scene of project.scenes) {
+            const chip = document.createElement('div');
+            chip.className = `scene-chip ${project.currentSceneId === scene.id ? 'active' : ''}`;
+            chip.onclick = () => switchScene(scene.id);
+            chip.innerHTML = `🎬 ${escapeHtml(scene.name)}`;
+            container.appendChild(chip);
+        }
+    }
+
+    function getSourceIcon(type) {
+        if (type === 'text') return '📝';
+        if (type === 'video') return '🎥';
+        if (type === 'image') return '🖼️';
+        return '📁';
+    }
+
+    // ============ SOURCE SELECTION & PROPERTIES ============
+    function selectSource(id) {
+        selectedSourceId = id;
+        updateSourcesGrid();
+        showPropertyEditor();
+    }
+
+    function getSelectedSource() {
+        const scene = getCurrentScene();
+        return scene?.sources.find(s => s.id === selectedSourceId);
+    }
+
+    function showPropertyEditor() {
+        const source = getSelectedSource();
+        const editorDiv = document.getElementById('propertyEditor');
+        if (!source) {
+            editorDiv.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">👆 Tap on a source to edit</div>';
+            document.getElementById('posX').value = '';
+            return;
+        }
+        if (source.type === 'text') {
+            editorDiv.innerHTML = `
+                <div class="property-group"><h4>✏️ Text Properties</h4>
+                <div class="property-row"><label>Text</label><textarea id="editText" rows="3">${escapeHtml(source.data.text || '')}</textarea></div>
+                <div class="property-row"><label>Font Size: ${source.data.fontSize || 24}px</label><input type="range" id="editFontSize" min="10" max="72" value="${source.data.fontSize || 24}"></div>
+                <div class="property-row"><label>Color</label><input type="color" id="editFontColor" value="${source.data.fontColor || '#ffffff'}"></div>
+                <div class="property-row"><label>Align</label><select id="editTextAlign"><option value="left" ${source.data.textAlign === 'left' ? 'selected' : ''}>Left</option><option value="center" ${source.data.textAlign === 'center' ? 'selected' : ''}>Center</option><option value="right" ${source.data.textAlign === 'right' ? 'selected' : ''}>Right</option></select></div>
+                <button class="btn" onclick="updateTextSource()">Apply</button>
+                </div>
+                <div class="property-group"><h4>📐 Transform</h4>
+                <div class="transform-controls"><div class="property-row"><label>X</label><input type="number" id="posX" value="${source.x}"></div><div class="property-row"><label>Y</label><input type="number" id="posY" value="${source.y}"></div></div>
+                <div class="transform-controls"><div class="property-row"><label>W</label><input type="number" id="srcWidth" value="${source.width}"></div><div class="property-row"><label>H</label><input type="number" id="srcHeight" value="${source.height}"></div></div>
+                <div class="property-row"><label>Opacity ${source.opacity}%</label><input type="range" id="srcOpacity" min="0" max="100" value="${source.opacity}"></div>
+                <button class="btn" onclick="updateTransform()">Apply Transform</button>
+                </div>
+                <button class="btn btn-danger" onclick="deleteSelectedSource()">🗑️ Delete Source</button>
+            `;
+        } else {
+            // video / image
+            editorDiv.innerHTML = `
+                <div class="property-group"><h4>📐 Transform</h4>
+                <div class="transform-controls"><div class="property-row"><label>X</label><input type="number" id="posX" value="${source.x}"></div><div class="property-row"><label>Y</label><input type="number" id="posY" value="${source.y}"></div></div>
+                <div class="transform-controls"><div class="property-row"><label>W</label><input type="number" id="srcWidth" value="${source.width}"></div><div class="property-row"><label>H</label><input type="number" id="srcHeight" value="${source.height}"></div></div>
+                <div class="property-row"><label>Opacity ${source.opacity}%</label><input type="range" id="srcOpacity" min="0" max="100" value="${source.opacity}"></div>
+                <button class="btn" onclick="updateTransform()">Apply Transform</button>
+                </div>
+                <button class="btn btn-danger" onclick="deleteSelectedSource()">🗑️ Delete Source</button>
+            `;
+        }
+        // set current transform values
+        document.getElementById('posX').value = source.x;
+        document.getElementById('posY').value = source.y;
+        document.getElementById('srcWidth').value = source.width;
+        document.getElementById('srcHeight').value = source.height;
+        document.getElementById('srcOpacity').value = source.opacity;
+                                                                                                                                                                                                                          
